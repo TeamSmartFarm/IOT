@@ -17,7 +17,8 @@ WiFiUDP Udp;
 DynamicJsonBuffer  jsonBuffer;
 JsonObject& root = jsonBuffer.createObject();
 
-char packetBuffer[65]; //buffer to hold incoming packet
+const int packetBufferLen = 80;
+char packetBuffer[packetBufferLen]; //buffer to hold incoming packet
 
 void createAP(){
   WiFi.disconnect();
@@ -102,7 +103,7 @@ void loop() {
       }
     */
     //Serial.println("Size of packet :"+packetSize);
-    int len = Udp.read(packetBuffer, 65);
+    int len = Udp.read(packetBuffer, packetBufferLen);
     if (len > 0) 
       packetBuffer[len] = '\0';
 
@@ -113,8 +114,6 @@ void loop() {
       return ;
     }
     Serial.print("Content :");
-    String str;
-    parse.printTo(str);
     parse.prettyPrintTo(Serial);
     
     int id = parse["id"];
@@ -133,6 +132,20 @@ void loop() {
       }
       /*Central node ID*/
       if (chipID == 1768718){ 
+        float temp = parse["sensors"][0];
+        float light = parse["sensors"][1];
+        int moisture = parse["sensors"][2];
+        int id = parse["id"];
+        int battery = parse["battery"];
+        String str = String(temp);
+        str += ":";
+        str += light;
+        str += ":";
+        str += moisture;
+        str += ":";
+        str += id;
+        str += ":";
+        str += battery;
         //parse.printTo(str);
         //parse.printTo(toArduino);
         Serial.println(str);
@@ -144,17 +157,17 @@ void loop() {
         scanAPandConnect();
         //String s;
         parse.printTo(packetBuffer);
-        //s.toCharArray(packetBuffer,45);
+        //s.toCharArray(packetBuffer,packetBufferLen);
         sendMessage(packetBuffer);
       }
     }
     createAP();
-    for (int i = 0; i<65; i++)
+    for (int i = 0; i<packetBufferLen; i++)
         packetBuffer[i] = '\0';
   }
   else if (Serial.available()){
     digitalWrite(LED_BUILTIN, LOW);
-    //Serial.readString().toCharArray(packetBuffer,55);
+    //Serial.readString().toCharArray(packetBuffer,packetBufferLen);
 
     JsonObject& parse = jsonBuffer.parseObject(Serial.readString());
     // Test if parsing succeeds.
@@ -168,7 +181,7 @@ void loop() {
     Serial.println("Content :"+String(packetBuffer));
     scanAPandConnect();
     sendMessage(packetBuffer);
-    for (int i = 0; i<65; i++)
+    for (int i = 0; i<packetBufferLen; i++)
         packetBuffer[i] = '\0';   
     Serial.flush();
     createAP();

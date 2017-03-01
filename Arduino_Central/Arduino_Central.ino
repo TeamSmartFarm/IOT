@@ -15,7 +15,6 @@ secTimer moistureTimer;
 
 long moistureTime, GSMTime;
 DynamicJsonBuffer  jsonBuffer;
-JsonObject& root;
 
 struct Threshold{
   float temp;
@@ -237,15 +236,17 @@ void senseSensors(int savedTemp[],int savedLight[],int savedMoisture[]){
   
   
   int i=0;
-
+  
   Serial.println("Reading Sensor Values");
   for(i=0;i<TOTALNODE;i++){
     
       while(fromNodeMCU.available() == 0){
         //Serial.print(".");  
       }
-      delay(1000);
-      root = jsonBuffer.parseObject(fromNodeMCU.readString());
+      //delay(1000);
+      String str = fromNodeMCU.readString();
+      Serial.println(str);
+      JsonObject& root= jsonBuffer.parseObject(str);
       if (!root.success()) {
         Serial.println("parseObject() failed");
         Serial.flush();

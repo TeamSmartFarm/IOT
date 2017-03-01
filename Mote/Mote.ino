@@ -18,7 +18,8 @@ WiFiUDP Udp;
 DynamicJsonBuffer  jsonBuffer;
 JsonObject& root = jsonBuffer.createObject();
 
-char packetBuffer[65]; //buffer to hold incoming packet
+const int packetBufferLen = 80;
+char packetBuffer[packetBufferLen]; //buffer to hold incoming packet
 
 void createAP(){
   WiFi.disconnect();
@@ -94,7 +95,7 @@ void loop() {
   int packetSize = Udp.parsePacket();
   if (fromArduino.available()){
     digitalWrite(LED_BUILTIN, LOW);
-    //fromArduino.readString().toCharArray(packetBuffer,45);
+    //fromArduino.readString().toCharArray(packetBuffer,packetBufferLen);
     JsonObject& parse = jsonBuffer.parseObject(fromArduino.readString());
     // Test if parsing succeeds.
     if (!parse.success()) {
@@ -107,7 +108,7 @@ void loop() {
     Serial.println("Content :"+String(packetBuffer));
     scanAPandConnect();
     sendMessage(packetBuffer);
-    for (int i = 0; i<65; i++)
+    for (int i = 0; i<packetBufferLen; i++)
         packetBuffer[i] = '\0';   
     fromArduino.flush();
     createAP();
@@ -124,7 +125,7 @@ void loop() {
       }
     */
     //Serial.println("Size of packet :"+packetSize);
-    int len = Udp.read(packetBuffer, 65);
+    int len = Udp.read(packetBuffer, packetBufferLen);
     if (len > 0) 
       packetBuffer[len] = '\0';
 
@@ -162,12 +163,12 @@ void loop() {
         scanAPandConnect();
         //String s;
         parse.printTo(packetBuffer);
-        //s.toCharArray(packetBuffer,45);
+        //s.toCharArray(packetBuffer,packetBufferLen);
         sendMessage(packetBuffer);
       }
     }
     createAP();
-    for (int i = 0; i<65; i++)
+    for (int i = 0; i<packetBufferLen; i++)
         packetBuffer[i] = '\0';
   }
   else if (Serial.available()){
@@ -186,7 +187,7 @@ void loop() {
     Serial.println("Content :"+String(packetBuffer));
     scanAPandConnect();
     sendMessage(packetBuffer);
-    for (int i = 0; i<65; i++)
+    for (int i = 0; i<packetBufferLen; i++)
         packetBuffer[i] = '\0';   
     Serial.flush();
     createAP();
