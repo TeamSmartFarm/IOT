@@ -14,7 +14,9 @@ secTimer gsmTimer;
 secTimer moistureTimer;
 
 long moistureTime, GSMTime;
+
 DynamicJsonBuffer  jsonBuffer;
+JsonObject& root = jsonBuffer.createObject();
 
 struct Threshold{
   float temp;
@@ -23,15 +25,15 @@ struct Threshold{
   float Lowermoisturelimit;     //It is used to turn on moter
 }thresholdValues;
 
+float initialTemp, initialLight, initialMoisture;
 float finalTemp, finalLight, finalMoisture;
-int savedTemp[TOTALNODE],savedLight[TOTALNODE],savedMoisture[TOTALNODE];
+int savedTemp[TOTALNODE],savedLight[TOTALNODE],savedMoisture[TOTALNODE],batteryLevel[TOTALNODE];
 int nodes[TOTALNODE];
 
 void intiGPRS(){
   
   Serial.println("Config SIM900...");
-  delay(2000);
-  Serial.println("Done!...");
+//  delay(2000);
   gprsSerial.flush();
   Serial.flush();
 
@@ -54,6 +56,8 @@ void intiGPRS(){
   gprsSerial.println("AT+SAPBR=1,1");
   delay(2000);
   toSerial();
+  Serial.flush();
+  Serial.println("Done!...");
 }
 
 void GSMSend(){
@@ -63,18 +67,36 @@ void GSMSend(){
    toSerial();
 
    // set http param value
-   //use global variable here to send data
-   //Will need some token for unique identity of farm....so here think abt sqlite
-   //gprsSerial.println("AT+HTTPPARA=\"URL\",\"http://helpinghandgj100596.comule.com/test.php?temp=1&light=2&moisture=2\"");
-   String url = "AT+HTTPPARA=\"URL\",\"http://ec2-35-154-68-218.ap-south-1.compute.amazonaws.com:8000/smartfarm?FarmID=";
+   /*
+   String url = "AT+HTTPPARA=\"URL\",\"http://ec2-35-154-68-218.ap-south-1.compute.amazonaws.com:8000/smartfarm?farmID=";
    url += FarmID;
-   url += "&Temp="; 
+   url += "&initialTemperature="; 
+   url += initialTemp;
+   url += "&finalTemperature="; 
    url += finalTemp;
-   url += "&Light="; 
+   url += "&initialLight="; 
+   url += initialLight;
+   url += "&finalLightt="; 
    url += finalLight;
-   url += "&Moisture=";
+   url += "&initialMoisture=";
+   url += initialMoisture;
+   url += "&finalMoisture=";
    url += finalMoisture;
-   url += "&Water=";
+   url += "&waterConsumption=";
+   url += (moistureTime*0.1124);
+   url += "\"";
+   */
+  
+   //gprsSerial.println("AT+HTTPPARA=\"URL\",\"http://helpinghandgj100596.comule.com/test.php?temp=1&light=2&moisture=2\"");
+   String url = "AT+HTTPPARA=\"URL\",\"http://ec2-35-154-68-218.ap-south-1.compute.amazonaws.com:8000/smartfarm?farmID=";
+   url += FarmID;
+   url += "&temperature="; 
+   url += finalTemp;
+   url += "&light="; 
+   url += finalLight;
+   url += "&moisture=";
+   url += finalMoisture;
+   url += "&waterConsumption=";
    url += (moistureTime*0.1124);
    url += "\"";
    Serial.println(""+url);
@@ -217,6 +239,7 @@ void initThreshold(){
    thresholdValues.Uppermoisturelimit = 400;      
    thresholdValues.Lowermoisturelimit = 600;
 }
+
 void printDatatoSerial(){
    Serial.println("FarmID"+FarmID);
    Serial.print("Temprature = ");
@@ -230,55 +253,10 @@ void printDatatoSerial(){
    Serial.println(moistureTime*0.1229);
 }
 
-
-
 void senseSensors(int savedTemp[],int savedLight[],int savedMoisture[]){
-  
-  
   int i=0;
-  
   Serial.println("Reading Sensor Values");
-  for(i=0;i<TOTALNODE;i++){
-    
-      while(fromNodeMCU.available() == 0){
-        //Serial.print(".");  
-      }
-      //delay(1000);
-      String str = fromNodeMCU.readString();
-      Serial.println(str);
-      JsonObject& root= jsonBuffer.parseObject(str);
-      if (!root.success()) {
-        Serial.println("parseObject() failed");
-        Serial.flush();
-        fromNodeMCU.flush();
-        return ;
-      }
-      root.prettyPrintTo(Serial);
-      
-      int tempValue = root["sensors"][0];
-      int lightValue = root["sensors"][1];
-      int moistureValue =  root["sensors"][2];
-
-      Serial.println(tempValue);
-      Serial.println(lightValue);
-      Serial.println(moistureValue);
-      
-      savedTemp[i] = tempValue;
-      savedLight[i] = lightValue;
-      savedMoisture[i] = moistureValue;
-      nodes[i] = root["id"];
-
-      Serial.flush();
-      fromNodeMCU.flush();
-  }
-  
-  /*
-  // Other way... When u know no of nodes
-  // To have this, while setting up the central node, u need to define the variable.
-  int i=0;
-
-  Serial.println("Reading Sensor Values");
-  for(i=0;i<TOTALNODE;i++){
+  for(i=0;i<TOTALNODE;){
     
       while(fromNodeMCU.available() == 0){
         //Serial.print(".");  
@@ -290,21 +268,54 @@ void senseSensors(int savedTemp[],int savedLight[],int savedMoisture[]){
       int tempValue = readings.substring(0,firstDelim).toInt();
       int secondDelim = readings.indexOf(':',firstDelim+1);
       int lightValue = readings.substring(firstDelim+1,secondDelim).toInt();
-      int moistureValue =  readings.substring(secondDelim+1).toInt();
+      int thirdDelim = readings.indexOf(':',secondDelim+1);
+      int moistureValue =  readings.substring(secondDelim+1,thirdDelim).toInt();
+      int forthDelim = readings.indexOf(':',thirdDelim+1);
+      int id = readings.substring(thirdDelim+1,forthDelim).toInt();
+      int battery = readings.substring(forthDelim+1).toInt();
 
+      Serial.print("Mote ID:");
+      Serial.println(id);
+      Serial.print("Tempreature :");
       Serial.println(tempValue);
+      Serial.print("Light :");
       Serial.println(lightValue);
+      Serial.print("Moisture :");
       Serial.println(moistureValue);
-      
-      savedTemp[i] = tempValue;
-      savedLight[i] = lightValue;
-      savedMoisture[i] = moistureValue;
+      Serial.print("Battery :");
+      Serial.println(battery);
 
+      int j = findNode(id);
+      if (j == -1){
+          nodes[i] = id;
+          savedTemp[i] = tempValue;
+          savedLight[i] = lightValue;
+          savedMoisture[i] = moistureValue;
+          batteryLevel[i] = battery;
+          i++;
+      }
+      else {
+          savedTemp[j] = tempValue;
+          savedLight[j] = lightValue;
+          savedMoisture[j] = moistureValue;
+          batteryLevel[j] = battery;
+      }
+      
       Serial.flush();
       fromNodeMCU.flush();
   }
-  */
   
+  for (int i = 0; i<TOTALNODE; i++){
+    nodes[i] = 0;
+  }
+}
+
+int findNode(int id){
+    for (int i = 0; i<TOTALNODE; i++){
+        if (nodes[i] == id)
+            return i;
+    }
+    return -1;
 }
 
 void findAvg(int savedTemp[],int savedLight[],int savedMoisture[]){
@@ -331,6 +342,11 @@ int takeDecision(){
   if (moterStatus == 0){
     //turn motor ON;
     if(finalMoisture > thresholdValues.Lowermoisturelimit){
+
+        initialTemp = finalTemp;
+        initialLight = finalLight;
+        initialMoisture = finalMoisture;
+
         digitalWrite(relay,HIGH);
         Serial.println("Moter ---------  HIGH");
         moterStatus = 1;
