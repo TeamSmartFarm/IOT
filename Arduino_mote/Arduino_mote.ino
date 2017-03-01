@@ -12,6 +12,7 @@ byte ldrOut = 10;
 byte lm34Out = 11;
 byte moistureOut = 12;
 byte led = 13;
+byte batteryOut = 9;
 
 unsigned int count = 0;
 DynamicJsonBuffer  jsonBuffer;
@@ -23,9 +24,11 @@ void setup() {
   pinMode(ldrOut,OUTPUT);
   pinMode(lm34Out,OUTPUT);
   pinMode(moistureOut,OUTPUT);
-  pinMode(A0,INPUT);
-  pinMode(A1,INPUT);
-  pinMode(A2,INPUT);
+  pinMode(batteryOut,OUTPUT);
+  pinMode(A0,INPUT);  //LDR
+  pinMode(A1,INPUT);  //Tempreature
+  pinMode(A2,INPUT);  //Moisture
+  pinMode(A3,INPUT);  //Battery status
   
   digitalWrite(ldrOut,LOW);
   digitalWrite(lm34Out,LOW);
@@ -33,6 +36,7 @@ void setup() {
 
   root["count"] = count;
   root["TTL"] = 5;
+  root["battery"] = 100;
   JsonArray& data = root.createNestedArray("sensors");
   /*dummy values*/
   data.add(0);
@@ -74,27 +78,19 @@ void loop() {
   delay(2000);
   int moisture = analogRead(A2);
   digitalWrite(moistureOut,LOW);
-  
-  //Tempreature
-  String temp;/* = (String)tempreature;
-  temp += ":";
-  //Light
-  temp += ldrLux;
-  //Moisture
-  temp += ":";
-  temp += moisture;
-  //Serial.println(temp);
-  */
+
   /*
-   * Json Object
+  delay(2000);
+  digitalWrite(batteryOut,HIGH);
+  delay(2000);
+  int moisture = analogRead(A3);
+  digitalWrite(batteryOut,LOW);
+  
    */
+  
+  String temp;
   root["count"] = count;
   root["TTL"] = 5;
-  /*JsonArray& data = root.createNestedArray("sensors");
-  data.add(tempreature);
-  data.add(ldrLux);
-  data.add(moisture);
-  */
   root["sensors"][0] = tempreature;
   root["sensors"][1] = ldrLux;
   root["sensors"][2] = moisture;
