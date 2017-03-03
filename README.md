@@ -2,7 +2,7 @@
 IOT contain code and architecture of motes used in project. In this project we have use **Arduino UNO** as a sensing mote and **NodeMCU 12E** for transreciver, 
 alternative low cost and power consumption IOT device can also be used.
 
-![Image of Yaktocat](https://octodex.github.com/images/yaktocat.png)
+![Image of Yaktocat](farm.jpg)
 
 There are four types of IOT devices(i.e motes) used in project:
 - Arduino_mote
